@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "434558826919",
+    "project_id": "flutterauth-8f30b",
+    "storage_bucket": "flutterauth-8f30b.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:434558826919:android:760dc58e6a14317c131e82",
+        "android_client_info": {
+          "package_name": "com.lbh.fauth"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTUkqYS9yGc_gjUZ0Hg6iYIfQk-PTAhbc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
