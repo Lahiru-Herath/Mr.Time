@@ -18,6 +18,8 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   // TEXT EDITING CONTROLLER
+  final nameController = TextEditingController();
+
   final emailController = TextEditingController();
 
   final passwordController = TextEditingController();
@@ -31,7 +33,9 @@ class _RegisterPageState extends State<RegisterPage> {
       context: context,
       builder: (context) {
         return const Center(
-          child: CircularProgressIndicator(),
+          child: CircularProgressIndicator(
+            color: Colors.red,
+          ),
         );
       },
     );
@@ -40,11 +44,21 @@ class _RegisterPageState extends State<RegisterPage> {
     try {
       // CHECK PASSWORD AND CONFIRM PASSWORD
       if (passwordController.text == confirmPasswordController.text) {
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        UserCredential userCredential =
+            await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: emailController.text.trim(),
           password: passwordController.text.trim(),
         );
+
+        User? user = userCredential.user;
+        if (user != null) {
+          await user.updateDisplayName(nameController.text.trim());
+          await user.reload();
+        }
+
+        Navigator.pop(context);
       } else {
+        Navigator.pop(context);
         // SHOW ERROR MESSAGE
         showErrorMessage("Passwords don't match!");
       }
@@ -63,7 +77,7 @@ class _RegisterPageState extends State<RegisterPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Colors.deepPurple,
+          backgroundColor: Colors.red,
           title: Center(
             child: Text(
               message,
@@ -110,6 +124,17 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 const SizedBox(
                   height: 25,
+                ),
+
+                // USERNAME TEXTFIELD
+                MyTextField(
+                  controller: nameController,
+                  hintText: "Name",
+                  obscureText: false,
+                ),
+
+                const SizedBox(
+                  height: 15,
                 ),
 
                 // USERNAME TEXTFIELD

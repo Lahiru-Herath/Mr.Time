@@ -1,24 +1,28 @@
-enum TaskStatus { COMPLETED, PENDING, CREATED }
+enum TaskStatus { COMPLETED, PENDING, UPCOMING }
 
 class Task {
   final String id;
   final String title;
   final String description;
-  final DateTime deadline;
+  final String deadline;
   final int timeWorked;
   final TaskStatus status;
   final String userId;
+  final String taskColor;
+  final List<String> tags;
 
-  Task(
-      {required this.id,
-      required this.title,
-      required this.description,
-      required this.deadline,
-      required this.timeWorked,
-      required this.status,
-      required this.userId});
+  Task({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.deadline,
+    required this.timeWorked,
+    required this.status,
+    required this.userId,
+    required this.taskColor,
+    required this.tags,
+  });
 
-  // Convert task to a map for firestore
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -28,6 +32,8 @@ class Task {
       'timeWorked': timeWorked,
       'status': status.name,
       'userId': userId,
+      'color': taskColor,
+      'tags': tags,
     };
   }
 
@@ -40,6 +46,8 @@ class Task {
       timeWorked: map['timeWorked'] ?? 0,
       status: TaskStatus.values.firstWhere((e) => e.name == map['status']),
       userId: map['userId'],
+      taskColor: map['taskColor'],
+      tags: map['tags'],
     );
   }
 }
