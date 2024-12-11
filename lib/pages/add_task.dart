@@ -1,8 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:uuid/uuid.dart';
+import 'package:intl/intl.dart'; // For date formatting
 import '../data/models/task.dart';
 
 class AddTaskPage extends StatefulWidget {
@@ -16,25 +16,37 @@ class _AddTaskPageState extends State<AddTaskPage> {
   final user = FirebaseAuth.instance.currentUser!;
   final _formKey = GlobalKey<FormState>();
 
-  // Form input controllers
+  // FORM INPUT CONTROLLERS
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _deadlineController = TextEditingController();
   final TextEditingController _tagsController = TextEditingController();
 
-  // Default values
-  final TaskStatus _selectedStatus = TaskStatus.PENDING;
-  String _selectedColor = "#000000";
+  // DEFAULT VALUES
+  final TaskStatus _selectedStatus = TaskStatus.TODO;
+  String _selectedColor = "#fbe114";
 
-  // Firestore reference
+  String? _deadline; // HOLD THE DEADLINE
+
+  // FIRESTORE REFERENCE
   final CollectionReference tasksCollection =
       FirebaseFirestore.instance.collection('tasks');
 
-  // Save Task to Firestore
+  // COLOR LIST
+  final List<String> colorOptions = [
+    "#fbe114",
+    "#4eed1",
+    "#13d3fb",
+    "#b6adff",
+    "#fb1467",
+    "#f5815c",
+    "#148cfb"
+  ];
+
+  // SAVE THE TASK
   Future<void> _saveTask() async {
     if (_formKey.currentState!.validate()) {
       String taskId = const Uuid().v4();
-      String userId = user.uid; // Replace with actual user ID logic
+      String userId = user.uid;
       List<String> tags =
           _tagsController.text.split(',').map((tag) => tag.trim()).toList();
 
@@ -42,9 +54,10 @@ class _AddTaskPageState extends State<AddTaskPage> {
         id: taskId,
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
-        deadline: _deadlineController.text.trim(),
+        deadline: _deadline!,
         timeWorked: 0, // Default to 0
         status: _selectedStatus,
+        isDone: false,
         userId: userId,
         taskColor: _selectedColor,
         tags: tags,
@@ -58,6 +71,22 @@ class _AddTaskPageState extends State<AddTaskPage> {
           SnackBar(content: Text("Failed to add task: $e")),
         );
       }
+    }
+  }
+
+  // SHOW DATE PICKER
+  Future<void> _selectDeadline() async {
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2100),
+    );
+
+    if (pickedDate != null) {
+      setState(() {
+        _deadline = DateFormat('d MMMM yyyy').format(pickedDate);
+      });
     }
   }
 
@@ -103,16 +132,28 @@ class _AddTaskPageState extends State<AddTaskPage> {
               ),
               const SizedBox(height: 16),
 
-              // Deadline Input
-              TextFormField(
-                controller: _deadlineController,
-                decoration: const InputDecoration(
-                  labelText: "Deadline (e.g., YYYY-MM-DD)",
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => value == null || value.isEmpty
-                    ? "Deadline is required"
-                    : null,
+              // Deadline Picker
+              Row(
+                children: [
+                  const Text(
+                    "Deadline:",
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      _deadline ?? "Select a date",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: _deadline == null ? Colors.grey : Colors.black87,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.calendar_today),
+                    onPressed: _selectDeadline,
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 
@@ -127,51 +168,28 @@ class _AddTaskPageState extends State<AddTaskPage> {
               const SizedBox(height: 16),
 
               // Color Picker
-              Row(
-                children: [
-                  const Text("Task Color: "),
-                  GestureDetector(
-                    onTap: () async {
-                      Color? pickedColor = await showDialog<Color>(
-                        context: context,
-                        builder: (context) {
-                          return AlertDialog(
-                            title: const Text("Pick Task Color"),
-                            content: SingleChildScrollView(
-                              child: BlockPicker(
-                                pickerColor: Color(int.parse(
-                                    _selectedColor.replaceFirst("#", "0xff"))),
-                                onColorChanged: (color) {
-                                  setState(() {
-                                    _selectedColor =
-                                        '#${color.value.toRadixString(16).substring(2)}';
-                                  });
-                                  Navigator.of(context).pop(color);
-                                },
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                      if (pickedColor != null) {
-                        setState(() {
-                          _selectedColor =
-                              '#${pickedColor.value.toRadixString(16).substring(2)}';
-                        });
-                      }
+              const Text("Pick Task Color:"),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8.0,
+                children: colorOptions.map((colorCode) {
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedColor = colorCode;
+                      });
                     },
                     child: Container(
-                      width: 24,
-                      height: 24,
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
                         color: Color(
-                          int.parse(_selectedColor.replaceFirst("#", "0xff")),
-                        ),
+                            int.parse(colorCode.replaceFirst("#", "0xff"))),
                         shape: BoxShape.circle,
                       ),
                     ),
-                  ),
-                ],
+                  );
+                }).toList(),
               ),
               const SizedBox(height: 16),
 

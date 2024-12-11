@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutterauth/components/category_box.dart';
 import 'package:flutterauth/components/task_tile.dart';
+import 'package:flutterauth/data/models/task.dart';
 import 'package:flutterauth/pages/add_task.dart';
 
 class HomePage extends StatefulWidget {
@@ -14,36 +16,31 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final user = FirebaseAuth.instance.currentUser!;
-  String selectedCategory = "Pending";
-  final List<Map<String, dynamic>> tasks = [
-    {
-      "title": "Complete Project Report",
-      "deadline": "10 December 2024",
-      "isDone": false,
-      "tags": ["Mobile Application", "Project"],
-      "backgroundColor": const Color(0xFF4BEEd1),
-      "timeWorked": 5624,
-    },
-    {
-      "title": "Study for Exams",
-      "deadline": "15 December 2024",
-      "isDone": false,
-      "tags": ["Study", "Exams"],
-      "backgroundColor": const Color(0xFFfbe114),
-      "timeWorked": 11730,
-    },
-    {
-      "title": "Work on Software Project",
-      "deadline": "16 December 2024",
-      "isDone": false,
-      "tags": ["Software", "Project"],
-      "backgroundColor": const Color(0xFF13d3fb),
-      "timeWorked": 8966,
-    }
-  ];
+  String selectedCategory = "Todo";
 
-  void toggleTaskStatus(int index, bool? value) {
-    tasks[index]["isDone"] = value!;
+  // FIRESTORE REFERENCE
+  final CollectionReference taskCollection =
+      FirebaseFirestore.instance.collection('tasks');
+
+  // FETCH TASKS OF THE CURRENT USER AND THE SELECTED CATEGORY
+  Stream<QuerySnapshot> _fetchTasks() {
+    return taskCollection
+        .where("userId", isEqualTo: user.uid)
+        .where("status", isEqualTo: selectedCategory.toUpperCase())
+        .snapshots();
+  }
+
+  void toggleTaskStatus(
+      String taskId, bool? value, TaskStatus newStatus) async {
+    try {
+      await taskCollection
+          .doc(taskId)
+          .update({"isDone": value!, "status": newStatus.name});
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to update task: $e")),
+      );
+    }
   }
 
   void signUserOut() {
@@ -219,14 +216,9 @@ class _HomePageState extends State<HomePage> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 CategoryBox(
-                  category: "Pending",
-                  isSelected: selectedCategory == "Pending",
-                  onTap: () => _onCategorySelected("Pending"),
-                ),
-                CategoryBox(
-                  category: "Upcoming",
-                  isSelected: selectedCategory == "Upcoming",
-                  onTap: () => _onCategorySelected("Upcoming"),
+                  category: "Todo",
+                  isSelected: selectedCategory == "Todo",
+                  onTap: () => _onCategorySelected("Todo"),
                 ),
                 CategoryBox(
                   category: "Completed",
@@ -241,24 +233,49 @@ class _HomePageState extends State<HomePage> {
             height: 25,
           ),
 
+          // Task List
           Expanded(
-            child: ListView.builder(
-              itemCount: tasks.length,
-              itemBuilder: (context, index) {
-                return TaskTile(
-                  backgroundColor: tasks[index]["backgroundColor"],
-                  title: tasks[index]["title"],
-                  deadline: tasks[index]["deadline"],
-                  isDone: tasks[index]["isDone"],
-                  tags: tasks[index]["tags"],
-                  timeWorked: tasks[index]["timeWorked"],
-                  onTap: () {},
-                  onEdit: () {},
-                  onToggle: (value) => toggleTaskStatus(index, value),
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _fetchTasks(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text("No tasks found."));
+                }
+
+                final tasks = snapshot.data!.docs;
+
+                return ListView.builder(
+                  itemCount: tasks.length,
+                  itemBuilder: (context, index) {
+                    final task = tasks[index].data() as Map<String, dynamic>;
+                    // print(task);
+                    return TaskTile(
+                      backgroundColor: Color(int.parse(
+                          task["color"].toString().replaceFirst("#", "0xff"))),
+                      title: task["title"],
+                      deadline: task["deadline"],
+                      isDone: task["status"] == "TODO" ? false : true,
+                      tags: List<String>.from(task["tags"]),
+                      timeWorked: task["timeWorked"],
+                      onTap: () {}, // Handle task tap
+                      onEdit: () {}, // Handle task edit
+                      onToggle: (value) => toggleTaskStatus(
+                        tasks[index].id,
+                        value,
+                        task["status"] == "TODO"
+                            ? TaskStatus.COMPLETED
+                            : TaskStatus.TODO,
+                      ),
+                    );
+                  },
                 );
               },
             ),
           ),
+
           Align(
             alignment: Alignment.bottomCenter,
             child: Column(

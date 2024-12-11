@@ -1,4 +1,4 @@
-enum TaskStatus { COMPLETED, PENDING, UPCOMING }
+enum TaskStatus { COMPLETED, TODO }
 
 class Task {
   final String id;
@@ -7,6 +7,7 @@ class Task {
   final String deadline;
   final int timeWorked;
   final TaskStatus status;
+  final bool isDone;
   final String userId;
   final String taskColor;
   final List<String> tags;
@@ -18,6 +19,7 @@ class Task {
     required this.deadline,
     required this.timeWorked,
     required this.status,
+    required this.isDone,
     required this.userId,
     required this.taskColor,
     required this.tags,
@@ -31,6 +33,7 @@ class Task {
       'deadline': deadline,
       'timeWorked': timeWorked,
       'status': status.name,
+      'isDone': isDone,
       'userId': userId,
       'color': taskColor,
       'tags': tags,
@@ -45,6 +48,7 @@ class Task {
       deadline: map['deadline'],
       timeWorked: map['timeWorked'] ?? 0,
       status: TaskStatus.values.firstWhere((e) => e.name == map['status']),
+      isDone: map['isDone'],
       userId: map['userId'],
       taskColor: map['taskColor'],
       tags: map['tags'],

@@ -50,7 +50,17 @@ class _SplashScreenState extends State<SplashScreen> {
               width: 200,
               height: 200,
             ),
-            const SizedBox(height: 20),
+            const Text(
+              "Mr.Time",
+              style: TextStyle(
+                fontSize: 40,
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(
+              height: 20,
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40),
               child: Container(
